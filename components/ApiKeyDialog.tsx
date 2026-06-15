@@ -45,7 +45,7 @@ export default function ApiKeyDialog({ open, dismissable = true, onClose }: ApiK
         <h2 className="text-lg font-bold text-amber-900">配置 DeepSeek API Key</h2>
         <p className="mt-2 text-sm text-gray-600 leading-relaxed">
           查词和句子拆解需要调用 DeepSeek。请填入你自己的 API Key——它只保存在你本地浏览器，
-          不会上传到除你自己后端以外的任何服务器。
+          仅在调用时由你的浏览器直接发送给 DeepSeek 官方接口，不经过本应用的任何服务器。
         </p>
 
         <div className="mt-4 relative">

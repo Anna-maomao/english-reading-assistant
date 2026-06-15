@@ -10,7 +10,7 @@ import AnalysisPanel from '@/components/AnalysisPanel'
 import VocabPanel from '@/components/VocabPanel'
 import ReaderDrawer from '@/components/ReaderDrawer'
 import ApiKeyDialog from '@/components/ApiKeyDialog'
-import { apiKeyHeader } from '@/lib/api-key'
+import { lookupWord, analyzeSentence } from '@/lib/deepseek'
 import { db, saveLocation, saveWord, saveSentence, addBookmark, deleteBookmark } from '@/lib/db'
 import type { WordPopupState, AnalysisState, Book, TocItem } from '@/types'
 import type { ViewerApi, LocationInfo } from '@/components/EpubViewer'
@@ -137,17 +137,17 @@ export default function ReadPage() {
     setPopup({ word, meaning: '', sentence, position: { x: rect.left + rect.width / 2, y: rect.top } })
 
     try {
-      const res = await fetch('/api/word', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...apiKeyHeader() },
-        body: JSON.stringify({ word, sentence }),
-      })
-      if (res.status === 401) {
+      const { meaning, error } = await lookupWord(word, sentence)
+      if (error === 'no_key') {
         setPopup(prev => (prev?.word === word ? { ...prev, meaning: '请先配置 API Key' } : prev))
         setShowKeyDialog(true)
         return
       }
-      const { meaning } = await res.json()
+      // 上游/网络失败：等同原来的 catch 分支
+      if (error) {
+        setPopup(prev => (prev?.word === word ? { ...prev, meaning: '查询失败' } : prev))
+        return
+      }
       setPopup(prev => (prev?.word === word ? { ...prev, meaning } : prev))
     } catch {
       setPopup(prev => (prev?.word === word ? { ...prev, meaning: '查询失败' } : prev))
@@ -159,17 +159,22 @@ export default function ReadPage() {
     setAnalyses(prev => [{ sentence, result: null, loading: true }, ...prev])
 
     try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...apiKeyHeader() },
-        body: JSON.stringify({ sentence }),
-      })
-      if (res.status === 401) {
+      const { result, error } = await analyzeSentence(sentence)
+      if (error === 'no_key') {
         setAnalyses(prev => prev.filter(a => !(a.sentence === sentence && a.loading)))
         setShowKeyDialog(true)
         return
       }
-      const result = await res.json()
+      // 上游/网络失败：等同原来的 catch 分支，仅撤掉 loading
+      if (error) {
+        setAnalyses(prev => {
+          const next = [...prev]
+          const idx = next.findIndex(a => a.sentence === sentence && a.loading)
+          if (idx !== -1) next[idx] = { ...next[idx], loading: false }
+          return next
+        })
+        return
+      }
       setAnalyses(prev => {
         const next = [...prev]
         const idx = next.findIndex(a => a.sentence === sentence && a.loading)

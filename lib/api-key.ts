@@ -1,7 +1,7 @@
 'use client'
 
 // DeepSeek API Key 管理：只存在用户本地浏览器（localStorage），
-// 每次请求带在 header 里转发给自己的后端，后端再转给 DeepSeek。
+// 由浏览器直连 DeepSeek 官方接口时带上，不经过自己的后端。
 // 不上传到任何第三方服务器，clone 本项目的人各填各的 key。
 
 import { useEffect, useState } from 'react'
@@ -22,12 +22,6 @@ export function setApiKey(value: string) {
 export function clearApiKey() {
   localStorage.removeItem(STORAGE_KEY)
   window.dispatchEvent(new Event(EVENT))
-}
-
-// 给 fetch 用：把 key 塞进请求头（没填则返回空对象）
-export function apiKeyHeader(): Record<string, string> {
-  const key = getApiKey()
-  return key ? { 'x-deepseek-key': key } : {}
 }
 
 // 订阅 key 的变化（本标签页用自定义事件，跨标签页用 storage 事件）
