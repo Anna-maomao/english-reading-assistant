@@ -1,65 +1,218 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, addBook, dueCounts } from '@/lib/db'
+import { extractEpubMeta } from '@/lib/epub-meta'
+import { extractPdfMeta } from '@/lib/pdf-meta'
+import { useApiKey, getApiKey } from '@/lib/api-key'
+import ApiKeyDialog from '@/components/ApiKeyDialog'
+import type { Book } from '@/types'
+
+function BookCard({ book, onDelete }: { book: Book; onDelete: () => void }) {
+  const router = useRouter()
+  // 封面对象 URL 用 useMemo 派生，避免在 effect 里 setState 触发额外渲染
+  const coverUrl = useMemo(
+    () => (book.cover ? URL.createObjectURL(book.cover) : null),
+    [book.cover]
+  )
+
+  useEffect(() => {
+    if (!coverUrl) return
+    return () => URL.revokeObjectURL(coverUrl)
+  }, [coverUrl])
+
+  return (
+    <div
+      onClick={() => router.push(`/read/${book.id}`)}
+      className="group relative w-40 cursor-pointer select-none"
+    >
+      <div className="w-40 h-56 rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-shadow bg-amber-100 flex items-center justify-center">
+        {coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverUrl} alt={book.title} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-5xl">📖</span>
+        )}
+      </div>
+      {book.progress != null && (
+        <div className="absolute top-2 right-2 bg-black/55 text-white text-[10px] px-2 py-0.5 rounded-full">
+          {Math.round(book.progress * 100)}%
+        </div>
+      )}
+      <button
+        onClick={e => {
+          e.stopPropagation()
+          if (confirm(`删除《${book.title}》？生词和句子记录会保留。`)) onDelete()
+        }}
+        className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+        title="删除书籍"
+      >
+        ×
+      </button>
+      <p className="mt-2 text-sm font-semibold text-amber-900 truncate">{book.title}</p>
+      {book.author && <p className="text-xs text-amber-500 truncate">{book.author}</p>}
+    </div>
+  )
+}
 
 export default function Home() {
+  const router = useRouter()
+  const [isDragging, setIsDragging] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [showKeyDialog, setShowKeyDialog] = useState(false)
+  const apiKey = useApiKey()
+
+  const books = useLiveQuery(() => db.books.orderBy('lastReadAt').reverse().toArray(), [])
+  const due = useLiveQuery(() => dueCounts(), [], { words: 0, sentences: 0 })
+  const wordCount = useLiveQuery(() => db.words.count(), [], 0)
+
+  // 第一次打开（本地没存 key、且没点过「先逛逛」）才自动弹出配置框。
+  // 在 effect 里同步读 localStorage —— 已存 key 或点过略过就不再弹，避免每次回首页都被打扰。
+  useEffect(() => {
+    if (!getApiKey() && !localStorage.getItem('deepseek_key_prompt_skipped')) {
+      // 必须延到客户端读 localStorage 后再决定是否弹窗，避免 SSR 水合不一致
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowKeyDialog(true)
+    }
+  }, [])
+
+  const handleFile = async (file: File) => {
+    const name = file.name.toLowerCase()
+    const isEpub = name.endsWith('.epub')
+    const isPdf = name.endsWith('.pdf')
+    if (!isEpub && !isPdf) {
+      alert('请上传 .epub 或 .pdf 格式的文件')
+      return
+    }
+    setImporting(true)
+    try {
+      const buffer = await file.arrayBuffer()
+      const meta = isPdf
+        ? { ...(await extractPdfMeta(buffer)), format: 'pdf' as const }
+        : { ...(await extractEpubMeta(buffer)), format: 'epub' as const }
+      const id = await addBook(new Blob([buffer]), meta)
+      router.push(`/read/${id}`)
+    } catch (err) {
+      console.error(err)
+      alert(`导入失败，请确认文件是有效的 ${isPdf ? 'PDF' : 'EPUB'}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const totalDue = due.words + due.sentences
+  const hasBooks = (books?.length ?? 0) > 0
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="min-h-screen bg-[#F7F2E9] px-8 py-10">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-amber-900 tracking-tight">英语阅读助手</h1>
+            <p className="text-amber-600 mt-1 text-sm">直接读原文 · 卡住才求助 · 生词句子自动沉淀</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowKeyDialog(true)}
+              title="配置 API Key"
+              aria-label="配置 API Key"
+              className={`text-sm px-3 py-1.5 rounded-full transition-colors ${
+                apiKey
+                  ? 'text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200'
+                  : 'text-white bg-amber-600 hover:bg-amber-700'
+              }`}
+            >
+              {apiKey ? '⚙️ API Key' : '⚙️ 设置 API Key'}
+            </button>
+            <Link
+              href="/library"
+              className="text-sm text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-4 py-1.5 rounded-full transition-colors"
+            >
+              生词本 {wordCount > 0 && <span className="font-semibold">{wordCount}</span>}
+            </Link>
+          </div>
+        </div>
+
+        {/* 复习提醒 */}
+        {totalDue > 0 && (
+          <Link
+            href="/review"
+            className="block mb-8 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl px-6 py-5 shadow-lg transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-lg">今天有 {totalDue} 项待复习</p>
+                <p className="text-amber-100 text-sm mt-0.5">
+                  {due.words > 0 && `${due.words} 个生词`}
+                  {due.words > 0 && due.sentences > 0 && ' · '}
+                  {due.sentences > 0 && `${due.sentences} 个句子`}
+                </p>
+              </div>
+              <span className="text-2xl">→</span>
+            </div>
+          </Link>
+        )}
+
+        {/* 书架 */}
+        <div className="flex flex-wrap gap-6">
+          {books?.map(book => (
+            <BookCard key={book.id} book={book} onDelete={() => db.books.delete(book.id)} />
+          ))}
+
+          {/* 导入 */}
+          <div
+            onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={e => {
+              e.preventDefault()
+              setIsDragging(false)
+              const file = e.dataTransfer.files[0]
+              if (file) handleFile(file)
+            }}
+            onClick={() => document.getElementById('fileInput')?.click()}
+            className={`w-40 h-56 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all select-none
+              ${isDragging
+                ? 'border-amber-500 bg-amber-50 scale-105'
+                : 'border-amber-300 hover:border-amber-400 hover:bg-amber-50'
+              }`}
+          >
+            {importing ? (
+              <span className="text-amber-500 text-sm animate-pulse">导入中…</span>
+            ) : (
+              <>
+                <span className="text-4xl mb-2">＋</span>
+                <p className="text-amber-800 text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF'}</p>
+                <p className="text-amber-400 text-xs mt-1">拖入或点击</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        <input
+          id="fileInput"
+          type="file"
+          accept=".epub,.pdf"
+          className="hidden"
+          onChange={e => {
+            if (e.target.files?.[0]) handleFile(e.target.files[0])
+            e.target.value = ''
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+      </div>
+
+      <ApiKeyDialog
+        open={showKeyDialog}
+        dismissable
+        onClose={() => {
+          // 没填 key 就关掉 = 选择「先逛逛」，记下来别再自动打扰（仍可点右上角设置随时配置）
+          if (!getApiKey()) localStorage.setItem('deepseek_key_prompt_skipped', '1')
+          setShowKeyDialog(false)
+        }}
+      />
+    </main>
+  )
 }

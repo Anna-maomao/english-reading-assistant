@@ -36,6 +36,18 @@ yarn-error.log*
 # vercel
 .vercel
 
+# playwright 调试产物
+/.playwright-mcp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 本地开发杂物 / 内部产物（不进公开仓库）
+*.png
+test.epub
+test.pdf
+CHANGELOG-AI.md
+查查复审报告.md
+查查审核报告.md
+/.claude/
