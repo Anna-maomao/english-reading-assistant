@@ -4,6 +4,8 @@
 
 [中文 README](./README.md) · **English**
 
+🔗 **Live demo: [english-reading.zeabur.app](https://english-reading.zeabur.app)** (bring your own DeepSeek key)
+
 An AI-powered reader for people learning English by reading real books. Import an EPUB / PDF, double-click any word you don't know to get its meaning in context, and select any tough sentence to have the AI break down its structure. Every word you look up and every sentence you analyze is automatically added to a spaced-repetition (SRS) queue, so they actually stick.
 
 All data lives in your own browser — no accounts, no server database. **Works out of the box.**
@@ -44,7 +46,7 @@ Word lookup and sentence analysis call [DeepSeek](https://platform.deepseek.com)
 3. Top up a small balance (a sentence analysis costs a fraction of a cent)
 4. Paste the key into the app's settings dialog
 
-The key is stored only in your browser's `localStorage`. Each request is forwarded to DeepSeek through this app's own backend and is never sent to any third party.
+The key is stored only in your browser's `localStorage`. Each request is sent **directly from your browser to DeepSeek's official API** — it never passes through this app's servers, nor any third party.
 
 ## Tech stack
 
@@ -52,7 +54,7 @@ The key is stored only in your browser's `localStorage`. Each request is forward
 - **Styling**: Tailwind CSS v4
 - **Local storage**: [Dexie](https://dexie.org) (an IndexedDB wrapper)
 - **E-book parsing**: [epub.js](https://github.com/futurepress/epub.js), [pdf.js](https://mozilla.github.io/pdf.js/)
-- **AI**: OpenAI SDK with `baseURL` pointed at DeepSeek (the `deepseek-chat` model)
+- **AI**: the browser calls DeepSeek's official API directly via `fetch` (the `deepseek-chat` model) — no server-side proxy
 
 ## Project structure
 
@@ -62,18 +64,18 @@ app/
   read/[bookId]/        Reader (lookup, sentence analysis, bookmarks, TOC)
   review/               Spaced-repetition review
   library/              Vocabulary book
-  api/word/             Word-definition endpoint
-  api/analyze/          Sentence-analysis endpoint
 components/             Reader, dialogs, panels, etc.
-lib/                    Database, SRS algorithm, pdf/epub parsing, API key management
+lib/
+  deepseek.ts           Browser-direct DeepSeek calls (lookup / analysis)
+  db.ts, srs.ts, ...    Database, SRS algorithm, pdf/epub parsing, API key management
 types/                  Shared types
 ```
 
 ## Notes & limitations
 
 - **Data is stored locally in the browser**: clearing browser data / switching browsers = books and records are gone. The types reserve an `updatedAt` field, so cloud sync (e.g. Supabase) could be added later.
-- **Best for local self-hosting**: each person runs their own copy with their own key. If you deploy it as a public shared URL, the "key in browser + forwarded through the backend" model is no longer safe (the backend becomes an open proxy) — you'd need to add authentication and rate limiting.
-- The backend endpoints **only accept a key supplied by the user via request headers**; there is no `DEEPSEEK_API_KEY` environment-variable fallback — this prevents a public deployment from being abused as a free DeepSeek proxy.
+- **Safe to deploy publicly**: this app is pure frontend — no backend, no secrets held server-side. Every user calls DeepSeek directly with the key in their own browser, so even a public deployment can't be abused as a "free DeepSeek proxy." (That's exactly why the server-side proxy was removed in favor of browser-direct calls.)
+- **Key safety**: your key stays in your own browser and is only ever sent to DeepSeek's official API — this app's servers never touch it.
 
 ## License
 
