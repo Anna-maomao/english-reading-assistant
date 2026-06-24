@@ -22,7 +22,7 @@ export interface AnalysisState {
 // 所有记录使用 uuid 主键 + updatedAt 时间戳，未来接 Supabase 同步时
 // 可直接按 updatedAt 做增量上行，无需迁移主键。
 
-export type BookFormat = 'epub' | 'pdf'
+export type BookFormat = 'epub' | 'pdf' | 'md'
 
 export interface Book {
   id: string
@@ -31,7 +31,7 @@ export interface Book {
   format: BookFormat // 缺省视为 'epub'（v3 之前导入的旧书）
   file: Blob
   cover: Blob | null
-  location: string | null // EPUB：CFI；PDF：`page:N` 续读定位
+  location: string | null // EPUB：CFI；PDF：`page:N`；MD：`scroll:<0-1>`（滚动百分比）续读定位
   progress: number | null // 0-1
   addedAt: number
   lastReadAt: number

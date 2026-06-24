@@ -4,7 +4,21 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { reviewCard, GRADUATE_STREAK } from '@/lib/srs'
+import { exportAllToAnki as buildAnkiExport } from '@/lib/anki'
 import type { SavedWord, SavedSentence } from '@/types'
+
+// 导出 Anki：拉全部生词 / 句子（不限于今天到期的），合并成单文件一次性下载
+async function exportAllToAnki() {
+  const [words, sentences] = await Promise.all([
+    db.words.orderBy('updatedAt').reverse().toArray(),
+    db.sentences.orderBy('updatedAt').reverse().toArray(),
+  ])
+  if (words.length === 0 && sentences.length === 0) {
+    alert('还没有生词或句子可以导出')
+    return
+  }
+  buildAnkiExport(words, sentences)
+}
 
 type Card =
   | { kind: 'word'; data: SavedWord }
@@ -131,12 +145,21 @@ export default function ReviewPage() {
             {queue.length === 0 ? '去读书吧，生词会自动积累进来' : '继续保持，去读书吧'}
           </p>
         </div>
-        <Link
-          href="/"
-          className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-colors"
-        >
-          回到书架
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportAllToAnki}
+            title="把所有生词和句子导出为 Anki 可导入的文本"
+            className="border border-amber-300 text-amber-700 hover:bg-amber-100 px-6 py-2.5 rounded-full text-sm font-semibold transition-colors"
+          >
+            导出 Anki
+          </button>
+          <Link
+            href="/"
+            className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-colors"
+          >
+            回到书架
+          </Link>
+        </div>
       </main>
     )
   }
@@ -151,6 +174,13 @@ export default function ReviewPage() {
           ← 退出复习
         </Link>
         <span className="ml-auto text-xs text-amber-500">剩余 {remaining} 张</span>
+        <button
+          onClick={exportAllToAnki}
+          title="把所有生词和句子导出为 Anki 可导入的文本"
+          className="text-amber-500 hover:text-amber-700 text-xs font-medium transition-colors"
+        >
+          导出 Anki
+        </button>
       </header>
 
       {/* Card */}

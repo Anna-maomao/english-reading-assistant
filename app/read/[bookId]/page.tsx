@@ -17,6 +17,7 @@ import type { ViewerApi, LocationInfo } from '@/components/EpubViewer'
 
 const EpubViewer = dynamic(() => import('@/components/EpubViewer'), { ssr: false })
 const PdfViewer = dynamic(() => import('@/components/PdfViewer'), { ssr: false })
+const MdViewer = dynamic(() => import('@/components/MdViewer'), { ssr: false })
 
 // 字体偏好（仅对 epub 有效，pdf 是固定版式）。value 为空串 = 跟随原书自带字体。
 const FONT_OPTIONS = [
@@ -337,6 +338,20 @@ export default function ReadPage() {
                 onRelocated={handleRelocated}
                 onLocationInfo={setLoc}
                 onToc={setToc}
+              />
+            ) : book?.format === 'md' ? (
+              <MdViewer
+                data={epubData}
+                initialLocation={book?.location}
+                savedWords={savedWords}
+                apiRef={viewerApi}
+                onWordSelect={handleWordSelect}
+                onSentenceSelect={handleSentenceSelect}
+                onRelocated={handleRelocated}
+                onLocationInfo={setLoc}
+                onToc={setToc}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
               />
             ) : (
               <EpubViewer

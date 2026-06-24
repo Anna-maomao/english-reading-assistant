@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/lib/db'
+import { exportWordsToAnki } from '@/lib/anki'
 
 interface VocabPanelProps {
   onClose: () => void
@@ -10,6 +11,10 @@ interface VocabPanelProps {
 export default function VocabPanel({ onClose }: VocabPanelProps) {
   const words = useLiveQuery(() => db.words.orderBy('updatedAt').reverse().toArray(), [])
 
+  function exportAnki() {
+    if (words) exportWordsToAnki(words)
+  }
+
   return (
     <div className="w-full h-full bg-white flex flex-col overflow-hidden">
       {/* Header */}
@@ -17,13 +22,24 @@ export default function VocabPanel({ onClose }: VocabPanelProps) {
         <h2 className="font-bold text-amber-900 text-sm tracking-wide">
           生词本 {(words?.length ?? 0) > 0 && <span className="text-amber-400 font-normal">{words?.length}</span>}
         </h2>
-        <button
-          onClick={onClose}
-          title="收起生词本"
-          className="text-gray-300 hover:text-gray-600 text-xl leading-none transition-colors"
-        >
-          ×
-        </button>
+        <div className="flex items-center gap-3">
+          {(words?.length ?? 0) > 0 && (
+            <button
+              onClick={exportAnki}
+              title="导出为 Anki 可导入的文本（制表符分隔）"
+              className="text-amber-500 hover:text-amber-700 text-xs font-medium transition-colors"
+            >
+              导出 Anki
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            title="收起生词本"
+            className="text-gray-300 hover:text-gray-600 text-xl leading-none transition-colors"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* Content */}

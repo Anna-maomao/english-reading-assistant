@@ -7,6 +7,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, addBook, dueCounts } from '@/lib/db'
 import { extractEpubMeta } from '@/lib/epub-meta'
 import { extractPdfMeta } from '@/lib/pdf-meta'
+import { extractMdMeta } from '@/lib/md-meta'
 import { useApiKey, getApiKey } from '@/lib/api-key'
 import ApiKeyDialog from '@/components/ApiKeyDialog'
 import type { Book } from '@/types'
@@ -83,21 +84,31 @@ export default function Home() {
     const name = file.name.toLowerCase()
     const isEpub = name.endsWith('.epub')
     const isPdf = name.endsWith('.pdf')
-    if (!isEpub && !isPdf) {
-      alert('请上传 .epub 或 .pdf 格式的文件')
+    const isMd = name.endsWith('.md') || name.endsWith('.markdown')
+    if (!isEpub && !isPdf && !isMd) {
+      alert('请上传 .epub、.pdf 或 .md 格式的文件')
       return
     }
     setImporting(true)
     try {
       const buffer = await file.arrayBuffer()
-      const meta = isPdf
-        ? { ...(await extractPdfMeta(buffer)), format: 'pdf' as const }
-        : { ...(await extractEpubMeta(buffer)), format: 'epub' as const }
+      let meta
+      if (isPdf) {
+        meta = { ...(await extractPdfMeta(buffer)), format: 'pdf' as const }
+      } else if (isMd) {
+        const m = extractMdMeta(buffer)
+        // .md 无内嵌标题时用「去扩展名的文件名」兜底
+        const fallback = file.name.replace(/\.(md|markdown)$/i, '').trim() || '未命名文档'
+        meta = { ...m, title: m.title || fallback, format: 'md' as const }
+      } else {
+        meta = { ...(await extractEpubMeta(buffer)), format: 'epub' as const }
+      }
       const id = await addBook(new Blob([buffer]), meta)
       router.push(`/read/${id}`)
     } catch (err) {
       console.error(err)
-      alert(`导入失败，请确认文件是有效的 ${isPdf ? 'PDF' : 'EPUB'}`)
+      const kind = isPdf ? 'PDF' : isMd ? 'Markdown' : 'EPUB'
+      alert(`导入失败，请确认文件是有效的 ${kind}`)
     } finally {
       setImporting(false)
     }
@@ -185,7 +196,7 @@ export default function Home() {
             ) : (
               <>
                 <span className="text-4xl mb-2">＋</span>
-                <p className="text-amber-800 text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF'}</p>
+                <p className="text-amber-800 text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF / MD'}</p>
                 <p className="text-amber-400 text-xs mt-1">拖入或点击</p>
               </>
             )}
@@ -195,7 +206,7 @@ export default function Home() {
         <input
           id="fileInput"
           type="file"
-          accept=".epub,.pdf"
+          accept=".epub,.pdf,.md,.markdown"
           className="hidden"
           onChange={e => {
             if (e.target.files?.[0]) handleFile(e.target.files[0])

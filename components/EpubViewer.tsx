@@ -15,6 +15,7 @@ interface EpubRendition {
   themes: {
     override: (name: string, value: string, priority?: boolean) => void
     removeOverride: (name: string) => void
+    default: (rules: Record<string, Record<string, string>>) => void
   }
   display: (target?: string) => Promise<void>
   next: () => void
@@ -65,6 +66,15 @@ function applyTheme(rendition: EpubRendition, fontSize: number, fontFamily: stri
   rendition.themes.override('font-size', `${fontSize}%`, true)
   if (fontFamily) rendition.themes.override('font-family', fontFamily, true)
   else rendition.themes.removeOverride('font-family')
+}
+
+// 部分书（如古登堡版）含未闭合的无 href 锚点 <a id=".."/>，会把整章正文包成伪链接，
+// 叠加书自带的 a:hover{color:red} 后导致鼠标划过全文变红。只压无 href 锚点的 hover 变色，
+// 真链接（目录跳转等）的 hover 不受影响。
+function applyDefaults(rendition: EpubRendition) {
+  rendition.themes.default({
+    'a:not([href]):hover': { color: 'inherit !important' },
+  })
 }
 
 // 从选区所在文本块中提取包含该选区的完整句子
@@ -223,7 +233,8 @@ export default function EpubViewer({
         applyHighlights(contents.document, savedWordsRef.current)
       })
 
-      // 应用当前字号/字体偏好（hook 已注册，后续章节会自动套用）
+      // 注入默认防护样式（伪链接 hover 变色），再应用字号/字体偏好（后续章节自动套用）
+      applyDefaults(rendition)
       applyTheme(rendition, fontSize, fontFamily)
 
       await rendition.display(initialLocation || undefined)
