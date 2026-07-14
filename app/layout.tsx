@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "英语阅读助手",
-  description: "直接读原文 · 卡住才求助 · 生词句子自动沉淀",
+  title: "开卷有益 - 翻开就是收获",
+  description: "一个安静的双语阅读空间，导入你的文档，选词高亮，AI 为你提供释义和例句。慢慢读，慢慢积累。",
 };
 
 export default function RootLayout({

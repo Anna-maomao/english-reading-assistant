@@ -118,13 +118,13 @@ export default function Home() {
   const hasBooks = (books?.length ?? 0) > 0
 
   return (
-    <main className="min-h-screen bg-[#F7F2E9] px-8 py-10">
+    <main className="min-h-screen bg-[#faf8fc] px-8 py-10">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-amber-900 tracking-tight">英语阅读助手</h1>
-            <p className="text-amber-600 mt-1 text-sm">直接读原文 · 卡住才求助 · 生词句子自动沉淀</p>
+            <h1 className="text-3xl font-bold text-purple-900 tracking-tight">开卷有益</h1>
+            <p className="text-purple-600 mt-1 text-sm">翻开就是收获</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -133,15 +133,15 @@ export default function Home() {
               aria-label="配置 API Key"
               className={`text-sm px-3 py-1.5 rounded-full transition-colors ${
                 apiKey
-                  ? 'text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200'
-                  : 'text-white bg-amber-600 hover:bg-amber-700'
+                  ? 'text-purple-700 hover:text-purple-900 bg-purple-100 hover:bg-purple-200'
+                  : 'text-white bg-purple-600 hover:bg-purple-700'
               }`}
             >
               {apiKey ? '⚙️ API Key' : '⚙️ 设置 API Key'}
             </button>
             <Link
               href="/library"
-              className="text-sm text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-4 py-1.5 rounded-full transition-colors"
+              className="text-sm text-purple-700 hover:text-purple-900 bg-purple-100 hover:bg-purple-200 px-4 py-1.5 rounded-full transition-colors"
             >
               生词本 {wordCount > 0 && <span className="font-semibold">{wordCount}</span>}
             </Link>
@@ -187,17 +187,17 @@ export default function Home() {
             onClick={() => document.getElementById('fileInput')?.click()}
             className={`w-40 h-56 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all select-none
               ${isDragging
-                ? 'border-amber-500 bg-amber-50 scale-105'
-                : 'border-amber-300 hover:border-amber-400 hover:bg-amber-50'
+                ? 'border-purple-500 bg-purple-50 scale-105'
+                : 'border-purple-300 hover:border-purple-400 hover:bg-purple-50'
               }`}
           >
             {importing ? (
-              <span className="text-amber-500 text-sm animate-pulse">导入中…</span>
+              <span className="text-purple-500 text-sm animate-pulse">导入中…</span>
             ) : (
               <>
                 <span className="text-4xl mb-2">＋</span>
-                <p className="text-amber-800 text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF / MD'}</p>
-                <p className="text-amber-400 text-xs mt-1">拖入或点击</p>
+                <p className="text-purple-800 text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF / MD'}</p>
+                <p className="text-purple-400 text-xs mt-1">拖入或点击</p>
               </>
             )}
           </div>
