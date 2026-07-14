@@ -48,7 +48,7 @@ function BookCard({ book, onDelete }: { book: Book; onDelete: () => void }) {
           e.stopPropagation()
           if (confirm(`删除《${book.title}》？生词和句子记录会保留。`)) onDelete()
         }}
-        className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/40 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+        className="absolute top-2 left-2 w-7 h-7 rounded-full bg-black/50 text-white text-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-black/70 flex items-center justify-center"
         title="删除书籍"
       >
         ×
@@ -118,30 +118,30 @@ export default function Home() {
   const hasBooks = (books?.length ?? 0) > 0
 
   return (
-    <main className="min-h-screen bg-[#faf8fc] px-8 py-10">
+    <main className="min-h-screen bg-[#f5efe6] px-4 sm:px-8 py-6 sm:py-10">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 sm:mb-8 gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-purple-900 tracking-tight">开卷有益</h1>
-            <p className="text-purple-600 mt-1 text-sm">翻开就是收获</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#3d3428] tracking-tight">开卷有益</h1>
+            <p className="text-[#8b7d6b] mt-1 text-sm">翻开就是收获</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowKeyDialog(true)}
               title="配置 API Key"
               aria-label="配置 API Key"
               className={`text-sm px-3 py-1.5 rounded-full transition-colors ${
                 apiKey
-                  ? 'text-purple-700 hover:text-purple-900 bg-purple-100 hover:bg-purple-200'
-                  : 'text-white bg-purple-600 hover:bg-purple-700'
+                  ? 'text-[#6b5a48] hover:text-[#3d3428] bg-[#ede5d8] hover:bg-[#ddd1c0]'
+                  : 'text-white bg-[#b8976e] hover:bg-[#a0825c]'
               }`}
             >
               {apiKey ? '⚙️ API Key' : '⚙️ 设置 API Key'}
             </button>
             <Link
               href="/library"
-              className="text-sm text-purple-700 hover:text-purple-900 bg-purple-100 hover:bg-purple-200 px-4 py-1.5 rounded-full transition-colors"
+              className="text-sm text-[#6b5a48] hover:text-[#3d3428] bg-[#ede5d8] hover:bg-[#ddd1c0] px-4 py-1.5 rounded-full transition-colors"
             >
               生词本 {wordCount > 0 && <span className="font-semibold">{wordCount}</span>}
             </Link>
@@ -169,7 +169,7 @@ export default function Home() {
         )}
 
         {/* 书架 */}
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-wrap gap-4 sm:gap-6 justify-center sm:justify-start">
           {books?.map(book => (
             <BookCard key={book.id} book={book} onDelete={() => db.books.delete(book.id)} />
           ))}
@@ -187,17 +187,17 @@ export default function Home() {
             onClick={() => document.getElementById('fileInput')?.click()}
             className={`w-40 h-56 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all select-none
               ${isDragging
-                ? 'border-purple-500 bg-purple-50 scale-105'
-                : 'border-purple-300 hover:border-purple-400 hover:bg-purple-50'
+                ? 'border-[#b8976e] bg-[#f0e8dd] scale-105'
+                : 'border-[#d4c4b0] hover:border-[#c4a882] hover:bg-[#f0e8dd]'
               }`}
           >
             {importing ? (
-              <span className="text-purple-500 text-sm animate-pulse">导入中…</span>
+              <span className="text-[#8b7d6b] text-sm animate-pulse">导入中…</span>
             ) : (
               <>
                 <span className="text-4xl mb-2">＋</span>
-                <p className="text-purple-800 text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF / MD'}</p>
-                <p className="text-purple-400 text-xs mt-1">拖入或点击</p>
+                <p className="text-[#3d3428] text-sm font-semibold">{hasBooks ? '添加书籍' : '导入 EPUB / PDF / MD'}</p>
+                <p className="text-[#b8a08a] text-xs mt-1">拖入或点击</p>
               </>
             )}
           </div>

@@ -43,6 +43,7 @@ export default function ReadPage() {
   const [fontSize, setFontSize] = useState(100)
   const [fontFamily, setFontFamily] = useState('')
   const [showFontMenu, setShowFontMenu] = useState(false)
+  const [showMobilePanel, setShowMobilePanel] = useState(false)
   const locationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const viewerApi = useRef<ViewerApi | null>(null)
 
@@ -158,6 +159,7 @@ export default function ReadPage() {
   const handleSentenceSelect = useCallback(async (sentence: string) => {
     setPopup(null)
     setAnalyses(prev => [{ sentence, result: null, loading: true }, ...prev])
+    setShowMobilePanel(true)
 
     try {
       const { result, error } = await analyzeSentence(sentence)
@@ -226,7 +228,7 @@ export default function ReadPage() {
   return (
     <div className="flex flex-col h-screen bg-[#F7F2E9] overflow-hidden">
       {/* Top bar */}
-      <header className="h-12 bg-[#F7F2E9]/90 backdrop-blur border-b border-amber-100 flex items-center px-5 gap-4 shrink-0 z-40">
+      <header className="h-12 bg-[#f5efe6]/90 backdrop-blur border-b border-amber-100 flex items-center px-3 sm:px-5 gap-2 sm:gap-4 shrink-0 z-40">
         <Link href="/" className="text-amber-700 hover:text-amber-900 text-sm transition-colors shrink-0">
           ← 书架
         </Link>
@@ -240,7 +242,7 @@ export default function ReadPage() {
           onClick={() => setDrawer(d => (d === 'bookmarks' ? null : 'bookmarks'))}
           className="text-sm text-amber-700 hover:text-amber-900 transition-colors shrink-0"
         >
-          书签 {(bookmarks?.length ?? 0) > 0 && <span className="text-amber-400">{bookmarks?.length}</span>}
+          书签{(bookmarks?.length ?? 0) > 0 && <span className="text-amber-400 ml-0.5">{bookmarks?.length}</span>}
         </button>
         {book?.format !== 'pdf' && (
           <div className="relative shrink-0">
@@ -294,15 +296,15 @@ export default function ReadPage() {
             )}
           </div>
         )}
-        <span className="text-sm font-semibold text-amber-900 truncate max-w-xs ml-1">{book?.title}</span>
+        <span className="text-sm font-semibold text-amber-900 truncate max-w-[10rem] sm:max-w-xs ml-1">{book?.title}</span>
         <span className="text-xs text-amber-400 hidden lg:block">
           双击单词查意思 · 划选句子拆结构
         </span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => setShowKeyDialog(true)}
             title="配置 API Key"
-            className="text-amber-700 hover:text-amber-900 transition-colors"
+            className="text-amber-700 hover:text-amber-900 transition-colors hidden sm:block"
             aria-label="配置 API Key"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -311,8 +313,8 @@ export default function ReadPage() {
             </svg>
           </button>
           <button
-            onClick={() => setShowVocab(v => !v)}
-            className={`text-xs px-3 py-1 rounded-full transition-colors ${
+            onClick={() => { setShowVocab(v => !v); setShowMobilePanel(true); }}
+            className={`text-xs px-2 sm:px-3 py-1 rounded-full transition-colors hidden sm:inline-block ${
               showVocab
                 ? 'bg-amber-600 text-white hover:bg-amber-700'
                 : 'text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200'
@@ -394,8 +396,8 @@ export default function ReadPage() {
           )}
         </div>
 
-        {/* 右侧栏：句子拆解（上）+ 生词本（下，可切换） */}
-        <div className="w-96 shrink-0 border-l border-amber-100 z-30 flex flex-col">
+        {/* 桌面端右侧栏：句子拆解（上）+ 生词本（下，可切换） */}
+        <div className="hidden lg:flex w-96 shrink-0 border-l border-amber-100 z-30 flex-col">
           <div className={showVocab ? 'flex-1 min-h-0 border-b border-amber-100' : 'flex-1 min-h-0'}>
             <AnalysisPanel items={analyses} onClear={() => setAnalyses([])} />
           </div>
@@ -405,6 +407,51 @@ export default function ReadPage() {
             </div>
           )}
         </div>
+
+        {/* 移动端底部面板 */}
+        <div className={`lg:hidden fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ${showMobilePanel ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="bg-white/95 backdrop-blur-lg border-t border-amber-200 rounded-t-2xl shadow-2xl max-h-[60vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-amber-100">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => { setShowVocab(false); }}
+                  className={`text-xs px-3 py-1 rounded-full transition-colors ${!showVocab ? 'bg-amber-600 text-white' : 'text-amber-700 bg-amber-50'}`}
+                >
+                  句子拆解 {analyses.length > 0 && <span className="ml-1 text-[10px]">{analyses.length}</span>}
+                </button>
+                <button
+                  onClick={() => { setShowVocab(true); }}
+                  className={`text-xs px-3 py-1 rounded-full transition-colors ${showVocab ? 'bg-amber-600 text-white' : 'text-amber-700 bg-amber-50'}`}
+                >
+                  生词本 {wordCount > 0 && <span className="ml-1 text-[10px]">{wordCount}</span>}
+                </button>
+              </div>
+              <button
+                onClick={() => setShowMobilePanel(false)}
+                className="text-amber-400 hover:text-amber-600 text-lg px-2"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-auto">
+              {showVocab ? (
+                <VocabPanel onClose={() => setShowMobilePanel(false)} />
+              ) : (
+                <AnalysisPanel items={analyses} onClear={() => setAnalyses([])} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 移动端浮动按钮：显示面板 */}
+        {!showMobilePanel && (analyses.length > 0 || showVocab) && (
+          <button
+            onClick={() => setShowMobilePanel(true)}
+            className="lg:hidden fixed bottom-4 right-4 z-40 w-12 h-12 rounded-full bg-amber-600 text-white shadow-lg flex items-center justify-center text-lg active:scale-95 transition-transform"
+          >
+            {showVocab ? '📖' : '📝'}
+          </button>
+        )}
       </div>
 
       {popup && (
